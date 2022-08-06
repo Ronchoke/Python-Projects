@@ -4,7 +4,7 @@ plots the 100 most used words in all these songs lyrics
 and shows the top 10 artists that use the most words"""
 
 import string
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import requests
 
 from bs4 import BeautifulSoup as Soup
@@ -28,6 +28,8 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     # Handle multiple Artists
     if '&' in artist:
         artist = artist.split(' & ')[0]
+    elif 'Featuring' in artist:
+        artist = artist.split(' Featuring')[0]
 
     # Create Artist page URL address
     url = 'https://www.lyrics.com/artist/' + artist.split(' ')[0].lower()
@@ -45,6 +47,8 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
 
     # Non-existing artists return empty string
     if len(songs) == 0:
+        # TODO: featuring artist fails here, see "Wait For U ,  Future Featuring Drake" example
+        print(song_title, ", ", artist)
         raise ValueError("Artist not found, check input for typos")
 
     # Create song's page URL
@@ -58,7 +62,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
         else:
             continue
 
-    # Unfound song titles
+    # Un-found song titles
     if to_lyr == '':
         raise ValueError("Title not found, check song input for typos")
 
@@ -109,11 +113,44 @@ def count_words_in_text(text: str) -> dict:
     return word_count
 
 
+def get_top_100_songs() -> dict:
+    """This function gets the top 100 songs as published on the
+    Billboard hot-100 page (https://www.billboard.com/charts/hot-100)
+
+    :return: songs_dict: dict
+    """
+    url = 'https://www.billboard.com/charts/hot-100'
+
+    # Connect to url and check response
+    page = requests.get(url)
+    if page.status_code != 200:
+        raise ConnectionError
+
+    # Parse content
+    page_content = Soup(page.content, 'html.parser')
+    chart_list = page_content.find_all('ul', class_="o-chart-results-list-row")
+
+    # Find all ranks, and correlating titles and artists
+    songs_dict = {}
+    for element in chart_list:
+        rank = element.find('span', class_='a-font-primary-bold-l').string.strip('\n\t')
+        song_title = element.find('h3', class_='a-no-trucate').string.strip('\n\t')
+        artist = element.find('span', class_='a-no-trucate').string.strip('\n\t')
+
+        lyrics = get_lyrics(song_title, artist)
+        if rank not in songs_dict:
+            songs_dict[rank] = {'Title': song_title,
+                                'Artist': artist.replace(' &', ','),
+                                'Word count': count_words_in_text(lyrics)}
+        else:
+            raise LookupError(f"parsing error. rank {rank} was already accounted for")
+
+    return songs_dict
+
+
 def __main__():
-    song_title = 'Yesterday'
-    artist = "the Beatles"
-    lyrics = get_lyrics(song_title, artist)
-    print(count_words_in_text(lyrics))
+    # print(get_lyrics("Wait For U", "Future Featuring Drake"))
+    get_top_100_songs()
 
 
 if __name__ == "__main__":
