@@ -86,10 +86,34 @@ def get_lyrics(song_title: str, artist: str) -> str:
     return lyr_page.find('pre', {'id': 'lyric-body-text'}).text
 
 
+def count_words_in_text(text: str) -> dict:
+    """Counts the number of unique words in a given string.
+    :param text: str
+    :return: word_count: dict
+    """
+    # Check input validation
+    if type(text) is not str:
+        raise ValueError("Input must be string")
+
+    # Clean rows from Text
+    text.replace("\n", ' ')
+
+    # Insert word without punctuations
+    word_count = {}
+    for word in text.split():
+        word = word.strip(string.punctuation).lower()
+        try:
+            word_count[word] = word_count[word] + 1
+        except KeyError:
+            word_count[word] = 1
+    return word_count
+
+
 def __main__():
     song_title = 'Yesterday'
     artist = "the Beatles"
-    print(get_lyrics(song_title, artist))
+    lyrics = get_lyrics(song_title, artist)
+    print(count_words_in_text(lyrics))
 
 
 if __name__ == "__main__":
