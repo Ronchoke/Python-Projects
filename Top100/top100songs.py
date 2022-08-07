@@ -5,9 +5,44 @@ and shows the top 10 artists that use the most words"""
 
 import string
 # import matplotlib.pyplot as plt
+import re
 import requests
 
 from bs4 import BeautifulSoup as Soup
+from typing import Union
+
+
+def get_content_from_url(url: str) -> Soup:
+    """ This function requests the content of a given HTML url,
+     parses it and returns a list of all relevant content under the text_specifier.
+    :param url: str
+    :return: list
+    """
+    # Connect to url and check response
+    req = requests.get(url)
+    if req.status_code != 200:
+        print(url)
+        raise ConnectionError
+
+    # Get content from artist page
+    return Soup(req.text, 'html.parser')
+
+
+def find_song_title_link(song_title: str, songs: list) -> str:
+    """This function iterates through HTML syntax from https://www.lyrics.com/ website
+    parsed by the get_content_from_url function
+    and find's the relative link to the song_title lyrics.
+    :param song_title: str
+    :param songs: list of HTML syntax content
+    :return: str, relative path to url
+    """
+    for song in songs:
+        find_song_title = song.a.text.lower()
+        if '(' in find_song_title:
+            find_song_title = find_song_title.split(' (')[0]
+        if song_title.lower() == find_song_title:
+            return song.find('a').attrs['href']
+    return ''
 
 
 def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
@@ -26,68 +61,67 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
         raise ValueError("Artist\'s Name must be given")
 
     # Handle multiple Artists
+    if "With" in artist:
+        artist = artist.split(' With')[0]
+    if 'Featuring' in artist:
+        artist = artist.split(' Featuring')[0]
     if '&' in artist:
         artist = artist.split(' & ')[0]
-    elif 'Featuring' in artist:
-        artist = artist.split(' Featuring')[0]
+
+    # Handle bracketed song title synonyms
+    if '(' in song_title:
+        song_title = song_title.split(' (')[0]
 
     # Create Artist page URL address
-    url = 'https://www.lyrics.com/artist/' + artist.split(' ')[0].lower()
-    for i in range(1, len(artist.split())):
-        url = url + '%20' + artist.split(' ')[i].lower()
+    base = 'https://www.lyrics.com/'
+    url = base + 'artist/' + artist.lower().replace(' ', '+')
+    relative_path = ''
 
-    # Connect to url and check response
-    r = requests.get(url)
-    if r.status_code != 200:
-        raise ConnectionError
+    content = get_content_from_url(url)
+    songs = content.find_all('td', {'class': 'tal qx'})
 
-    # Get artist's page content
-    container = Soup(r.text, 'html.parser')
-    songs = container.find_all('td', {'class': 'tal qx'})
-
-    # Non-existing artists return empty string
+    # Non-specific artist name return empty string, page is redirected to a search artist page
     if len(songs) == 0:
-        # TODO: featuring artist fails here, see "Wait For U ,  Future Featuring Drake" example
-        print(song_title, ", ", artist)
-        raise ValueError("Artist not found, check input for typos")
+        # Look-Up in all Relevant artist
+        # content = get_content_from_url(url)
+        artists = content.find_all('td', {'class': 'tal fx'})
 
-    # Create song's page URL
-    base = 'https://www.lyrics.com'
-    to_lyr = ''
-    for i in range(len(songs)):
-        if songs[i].a is None:
-            continue
-        elif songs[i].a.text.lower() == song_title.lower():
-            to_lyr = songs[i].a.attrs['href']
-        else:
-            continue
+        # Search in all matching artists for the song
+        for artist_link in artists:
+            # Link to artist page
+            # if artist_link.a is None:
+                # continue
+            try:
+                url = base + artist_link.a.attrs['href']
+            except AttributeError:
+                continue
+            content = get_content_from_url(url)
+            songs = content.find_all('td', {'class': 'tal qx'})
+            relative_path = find_song_title_link(song_title, songs)
+            if relative_path:
+                break
+    else:
+        relative_path = find_song_title_link(song_title, songs)
 
-    # Un-found song titles
-    if to_lyr == '':
-        raise ValueError("Title not found, check song input for typos")
-
-    return base + to_lyr
+    return base + relative_path
 
 
-def get_lyrics(song_title: str, artist: str) -> str:
+def get_lyrics(song_title: str, artist: str) -> Union[str, None]:
     """The get_lyrics function gets the lyrics for a song_title,
     from https://www.lyrics.com website
     and return all the lyrics
 
     :param song_title: str.
     :param artist: str
-    :return: lyrics: str
+    :return: lyrics: str. None if no URL was found.
     """
     url = get_full_url_to_lyrics(song_title, artist)
+    if url is None:
+        return ''
 
-    # Connect to url and check response
-    req = requests.get(url)
-    if req.status_code != 200:
-        raise ConnectionError
-
-    # Parse for lyrics
-    lyr_page = Soup(req.text, 'html.parser')
-    return lyr_page.find('pre', {'id': 'lyric-body-text'}).text
+    lyr_page = get_content_from_url(url)
+    lyrics = lyr_page.find('pre', {'id': 'lyric-body-text'})  # , limit=1)
+    return lyrics.text
 
 
 def count_words_in_text(text: str) -> dict:
@@ -96,6 +130,8 @@ def count_words_in_text(text: str) -> dict:
     :return: word_count: dict
     """
     # Check input validation
+    if text is '':
+        return dict()
     if type(text) is not str:
         raise ValueError("Input must be string")
 
@@ -116,19 +152,12 @@ def count_words_in_text(text: str) -> dict:
 def get_top_100_songs() -> dict:
     """This function gets the top 100 songs as published on the
     Billboard hot-100 page (https://www.billboard.com/charts/hot-100)
-
     :return: songs_dict: dict
     """
     url = 'https://www.billboard.com/charts/hot-100'
 
-    # Connect to url and check response
-    page = requests.get(url)
-    if page.status_code != 200:
-        raise ConnectionError
-
-    # Parse content
-    page_content = Soup(page.content, 'html.parser')
-    chart_list = page_content.find_all('ul', class_="o-chart-results-list-row")
+    content = get_content_from_url(url)
+    chart_list = content.find_all('ul', class_="o-chart-results-list-row")
 
     # Find all ranks, and correlating titles and artists
     songs_dict = {}
@@ -148,10 +177,10 @@ def get_top_100_songs() -> dict:
     return songs_dict
 
 
-def __main__():
+def main():
     # print(get_lyrics("Wait For U", "Future Featuring Drake"))
     get_top_100_songs()
 
 
 if __name__ == "__main__":
-    __main__()
+    main()
