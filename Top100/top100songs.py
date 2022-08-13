@@ -4,8 +4,8 @@ plots the 100 most used words in all these songs lyrics
 and shows the top 10 artists that use the most words"""
 
 import string
-# import matplotlib.pyplot as plt
-import re
+import matplotlib.pyplot as plt
+# import re
 import requests
 
 from bs4 import BeautifulSoup as Soup
@@ -204,10 +204,24 @@ def merge_dictionaries_by_key(songs_dict, key):
     return tot_word_count
 
 
+def plot_most_used_words(tot_word_count):
+    big2small = sorted(tot_word_count.items(), key=lambda d: d[1], reverse=True)
+    big2small = big2small[:101]
+    words = [i[0] for i in big2small]
+    count = [i[1] for i in big2small]
+
+    plt.figure(figsize=(20, 5))
+    plt.bar(words, count, align="edge")
+    plt.tick_params(axis='x', rotation=90, pad=10, labelsize='large')
+    plt.xlabel('Words')
+    plt.ylabel('Counts')
+    plt.show()
+
+
 def main():
     songs_dict = get_top_100_songs()
     tot_word_count = merge_dictionaries_by_key(songs_dict, 'Word count')
-    print(tot_word_count)
+    plot_most_used_words(tot_word_count)
 
 
 if __name__ == "__main__":
