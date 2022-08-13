@@ -177,9 +177,37 @@ def get_top_100_songs() -> dict:
     return songs_dict
 
 
+def merge_all_word_counts(song_word_count: dict, tot_word_count: dict) -> dict:
+    """Sums the word counts of all the various song_count dictionaries
+    :param song_word_count: dict
+    :param tot_word_count: dict
+    :return: tot_word_count: dict
+    """
+    for word in song_word_count.keys():
+        try:
+            tot_word_count[word] = tot_word_count[word] + song_word_count[word]
+        except KeyError:
+            tot_word_count[word] = song_word_count[word]
+    return tot_word_count
+
+
+def merge_dictionaries_by_key(songs_dict, key):
+    """This function runs through a dictionary with values of type dictionary,
+    and merges the values's values by the key given (value[key]).
+    :param songs_dict: dict, to each key, the value is of type(dict)
+    :param key: str, the key within the songs_dict value dictionary to be used (value[key])
+    :return: tot_word_count: dict
+    """
+    tot_word_count = dict()
+    for ranked_song_info in songs_dict.values():
+        tot_word_count = merge_all_word_counts(ranked_song_info[key], tot_word_count)
+    return tot_word_count
+
+
 def main():
-    # print(get_lyrics("Wait For U", "Future Featuring Drake"))
-    get_top_100_songs()
+    songs_dict = get_top_100_songs()
+    tot_word_count = merge_dictionaries_by_key(songs_dict, 'Word count')
+    print(tot_word_count)
 
 
 if __name__ == "__main__":
