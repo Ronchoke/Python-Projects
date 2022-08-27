@@ -5,7 +5,6 @@ and shows the top 10 artists that use the most words"""
 
 import string
 import matplotlib.pyplot as plt
-# import re
 import requests
 
 from bs4 import BeautifulSoup as Soup
@@ -83,14 +82,10 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     # Non-specific artist name return empty string, page is redirected to a search artist page
     if len(songs) == 0:
         # Look-Up in all Relevant artist
-        # content = get_content_from_url(url)
         artists = content.find_all('td', {'class': 'tal fx'})
 
         # Search in all matching artists for the song
         for artist_link in artists:
-            # Link to artist page
-            # if artist_link.a is None:
-                # continue
             try:
                 url = base + artist_link.a.attrs['href']
             except AttributeError:
@@ -157,6 +152,7 @@ def get_top_100_songs() -> dict:
     url = 'https://www.billboard.com/charts/hot-100'
 
     content = get_content_from_url(url)
+
     chart_list = content.find_all('ul', class_="o-chart-results-list-row")
 
     # Find all ranks, and correlating titles and artists
@@ -191,7 +187,7 @@ def merge_all_word_counts(song_word_count: dict, tot_word_count: dict) -> dict:
     return tot_word_count
 
 
-def merge_dictionaries_by_key(songs_dict, key):
+def merge_dictionaries_by_key(songs_dict: dict, key: any) -> dict:
     """This function runs through a dictionary with values of type dictionary,
     and merges the values's values by the key given (value[key]).
     :param songs_dict: dict, to each key, the value is of type(dict)
@@ -204,24 +200,57 @@ def merge_dictionaries_by_key(songs_dict, key):
     return tot_word_count
 
 
-def plot_most_used_words(tot_word_count):
+def plot_most_used_words(tot_word_count: dict) -> plt:
+    """
+    This function gets a dictionary of word: counts of the top 100 ranked songs lyrics.
+    :param tot_word_count: dict
+    :return: None
+    """
     big2small = sorted(tot_word_count.items(), key=lambda d: d[1], reverse=True)
     big2small = big2small[:101]
     words = [i[0] for i in big2small]
     count = [i[1] for i in big2small]
 
-    plt.figure(figsize=(20, 5))
-    plt.bar(words, count, align="edge")
-    plt.tick_params(axis='x', rotation=90, pad=10, labelsize='large')
-    plt.xlabel('Words')
-    plt.ylabel('Counts')
-    plt.show()
+    fig = plt.figure(figsize=(15, 10))
+    plt.barh(words, count)
+    plt.ylabel('Words')
+    plt.xlabel('Counts')
+    plt.xlim(0, count[0] + 20)
+    # plt.tick_params(axis='y', pad=10, labelsize='large')
+    plt.title('Most Used Words In All Lyrics')
+    plt.tight_layout()
+    return fig
+
+
+def plot_most_verbal_artist(songs_dict: dict) -> plt:
+    """
+    This function plots the top 10 artists that use the most unique words in their lyrics.
+    :param songs_dict: dict, as recieved from the get_top_100_songs function.
+    :return: None
+    """
+    songs_by_most_words = sorted(songs_dict.values(), key=lambda d: len(d['Word count']), reverse=True)
+    most_verbal = songs_by_most_words[:10]
+    artist = [i['Artist'] for i in most_verbal]
+    counts = [len(i['Word count']) for i in most_verbal]
+
+    fig = plt.figure(figsize=(15, 10))
+    plt.barh(artist, counts)
+    plt.ylabel('Artists')
+    plt.xlabel('Number of Words Used')
+    plt.xlim(0, counts[0] + 10)
+    # plt.tick_params(axis='y', pad=10, labelsize='large')
+    plt.title('Artist Who Use Most Words In Lyrics')
+    plt.tight_layout()
+    return fig
 
 
 def main():
     songs_dict = get_top_100_songs()
     tot_word_count = merge_dictionaries_by_key(songs_dict, 'Word count')
+
+    plot_most_verbal_artist(songs_dict)
     plot_most_used_words(tot_word_count)
+    plt.show()
 
 
 if __name__ == "__main__":
