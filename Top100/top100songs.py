@@ -1,4 +1,4 @@
-"""This code finds the top 100 most popular songs by parsing and without using OOP
+"""This Module finds the top 100 most popular songs by parsing and without using OOP
 the HOT 100 index by Billboard (https://www.billboard.com/charts/hot-100/)
 plots the 100 most used words in all these songs lyrics
 and shows the top 10 artists that use the most words"""
@@ -8,20 +8,21 @@ import matplotlib.pyplot as plt
 import requests
 
 from bs4 import BeautifulSoup as Soup
+# from collections import defaultdict
 from typing import Union
 
 
 def get_content_from_url(url: str) -> Soup:
     """ This function requests the content of a given HTML url,
-     parses it and returns a list of all relevant content under the text_specifier.
+     parses it with html.parser and returns a list of all content.
     :param url: str
     :return: list
     """
     # Connect to url and check response
+    approved_request = 200
     req = requests.get(url)
-    if req.status_code != 200:
-        print(url)
-        raise ConnectionError
+    if req.status_code != approved_request:
+        raise ConnectionError(f'{url}')
 
     # Get content from artist page
     return Soup(req.text, 'html.parser')
@@ -44,6 +45,7 @@ def find_song_title_link(song_title: str, songs: list) -> str:
     return ''
 
 
+# TODO: refactor - too long & complicated
 def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     """Gets the full link to the lyric's page for a song_title and artist name,
     from https://www.lyrics.com website and return all the lyrics.
@@ -51,6 +53,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     :param artist: str
     :return: url: str
     """
+    # TODO: create check_song_title_input function
     # Check Input
     if type(song_title) is not str or type(artist) is not str:
         raise TypeError("Input type must be string.")
@@ -59,6 +62,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     if artist == '':
         raise ValueError("Artist\'s Name must be given")
 
+    # TODO: create check_artist_input function
     # Handle multiple Artists
     if "With" in artist:
         artist = artist.split(' With')[0]
@@ -67,21 +71,24 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     if '&' in artist:
         artist = artist.split(' & ')[0]
 
+    # TODO: insert to check_song_title_input function with upper segment
     # Handle bracketed song title synonyms
     if '(' in song_title:
         song_title = song_title.split(' (')[0]
 
+    # TODO: Capital letters for magic variables (base_url)
     # Create Artist page URL address
     base = 'https://www.lyrics.com/'
     url = base + 'artist/' + artist.lower().replace(' ', '+')
     relative_path = ''
 
+    # get content and find songs the css text specifiers for table data (td)
     content = get_content_from_url(url)
     songs = content.find_all('td', {'class': 'tal qx'})
 
-    # Non-specific artist name return empty string, page is redirected to a search artist page
+    # Non-specific artist name return empty string, indicating that the page is redirected to a search artist page
     if len(songs) == 0:
-        # Look-Up in all Relevant artist
+        # Look-Up in all Relevant artist under the css text specifiers for table data (td)
         artists = content.find_all('td', {'class': 'tal fx'})
 
         # Search in all matching artists for the song
@@ -90,6 +97,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
                 url = base + artist_link.a.attrs['href']
             except AttributeError:
                 continue
+            # get content and find songs the css text specifiers for table data (td)
             content = get_content_from_url(url)
             songs = content.find_all('td', {'class': 'tal qx'})
             relative_path = find_song_title_link(song_title, songs)
@@ -130,9 +138,10 @@ def count_words_in_text(text: str) -> dict:
     if type(text) is not str:
         raise ValueError("Input must be string")
 
-    # Clean rows from Text
+    # Strip rows from Text
     text.replace("\n", ' ')
 
+    # TODO: use deafaultdict()
     # Insert word without punctuations
     word_count = {}
     for word in text.split():
@@ -149,6 +158,7 @@ def get_top_100_songs() -> dict:
     Billboard hot-100 page (https://www.billboard.com/charts/hot-100)
     :return: songs_dict: dict
     """
+    # TODO: magic key words use uppercase (url)
     url = 'https://www.billboard.com/charts/hot-100'
 
     content = get_content_from_url(url)
@@ -189,8 +199,8 @@ def merge_all_word_counts(song_word_count: dict, tot_word_count: dict) -> dict:
 
 def merge_dictionaries_by_key(songs_dict: dict, key: any) -> dict:
     """This function runs through a dictionary with values of type dictionary,
-    and merges the values's values by the key given (value[key]).
-    :param songs_dict: dict, to each key, the value is of type(dict)
+    and merges the values of songs_dict[songs_dict_key] values by the key given (value[key]).
+    :param songs_dict: dict. each key has a value of type(dict) with key values of 'Title', 'Artist' or 'Word count'
     :param key: str, the key within the songs_dict value dictionary to be used (value[key])
     :return: tot_word_count: dict
     """
