@@ -45,6 +45,45 @@ def find_song_title_link(song_title: str, songs: list) -> str:
     return ''
 
 
+def check_song_title_input(song_title: str) -> str:
+    """ This function checks the validity of the input and returns the song title common name.
+
+    :param song_title: str, text representing the name of a song
+    :return: song_title: str, text representing the name of a song
+    """
+    if type(song_title) is not str:
+        raise TypeError("Input type must be string.")
+    if song_title == '':
+        raise ValueError("No Song Title inserted")
+
+    # Handle bracketed song title synonyms
+    if '(' in song_title:
+        song_title = song_title.split(' (')[0]
+
+    return song_title
+
+
+def check_artist_input(artist: str) -> str:
+    """This function checks the validity of the input artist and returns the first artist.
+
+    :param artist: str, the stage names of one or more artists
+    :return: artist: str, the first artist only
+    """
+    if type(artist) is not str:
+        raise TypeError("Input type must be string.")
+    if artist == '':
+        raise ValueError("Artist\'s Name must be given")
+
+    # Handle multiple Artists
+    if "With" in artist:
+        artist = artist.split(' With')[0]
+    if 'Featuring' in artist:
+        artist = artist.split(' Featuring')[0]
+    if '&' in artist:
+        artist = artist.split(' & ')[0]
+    return artist
+
+
 # TODO: refactor - too long & complicated
 def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     """Gets the full link to the lyric's page for a song_title and artist name,
@@ -53,28 +92,9 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     :param artist: str
     :return: url: str
     """
-    # TODO: create check_song_title_input function
     # Check Input
-    if type(song_title) is not str or type(artist) is not str:
-        raise TypeError("Input type must be string.")
-    if song_title == '':
-        raise ValueError("No Song Title inserted")
-    if artist == '':
-        raise ValueError("Artist\'s Name must be given")
-
-    # TODO: create check_artist_input function
-    # Handle multiple Artists
-    if "With" in artist:
-        artist = artist.split(' With')[0]
-    if 'Featuring' in artist:
-        artist = artist.split(' Featuring')[0]
-    if '&' in artist:
-        artist = artist.split(' & ')[0]
-
-    # TODO: insert to check_song_title_input function with upper segment
-    # Handle bracketed song title synonyms
-    if '(' in song_title:
-        song_title = song_title.split(' (')[0]
+    song_title = check_song_title_input(song_title)
+    artist = check_artist_input(artist)
 
     # TODO: Capital letters for magic variables (base_url)
     # Create Artist page URL address
@@ -153,12 +173,33 @@ def count_words_in_text(text: str) -> dict:
     return word_count
 
 
+def insert_data_to_songs_dict(songs_dict: dict, rank: str, song_title: str, artist: str, lyrics: str) -> dict:
+    """This function inserts data into songs_dict by the key rank, songs_dict[rank],
+    the value will be a dictionary {'Title': song_title, 'Artist': artist, 'Word count': lyrics}.
+
+    :param songs_dict: dict, data will be as songs_dict[rank]: {'Title', 'Artist', 'Word count'}
+    :param rank: str, of decimal value between 1 and 100
+    :param song_title: str, the song title corresponding to this week's top 100 rank
+    :param artist: str, artist of corresponding song title
+    :param lyrics: str, lyrics of the song title
+    :return: songs_dict: dict
+    """
+    if rank not in songs_dict:
+        songs_dict[rank] = {'Title': song_title,
+                            'Artist': artist.replace(' &', ','),
+                            'Word count': count_words_in_text(lyrics)}
+    else:
+        raise LookupError(f"parsing error. rank {rank} was already accounted for")
+
+    return songs_dict
+
+
 def get_top_100_songs() -> dict:
     """This function gets the top 100 songs as published on the
     Billboard hot-100 page (https://www.billboard.com/charts/hot-100)
     :return: songs_dict: dict
     """
-    # TODO: magic key words use uppercase (url)
+
     url = 'https://www.billboard.com/charts/hot-100'
 
     content = get_content_from_url(url)
@@ -173,12 +214,8 @@ def get_top_100_songs() -> dict:
         artist = element.find('span', class_='a-no-trucate').string.strip('\n\t')
 
         lyrics = get_lyrics(song_title, artist)
-        if rank not in songs_dict:
-            songs_dict[rank] = {'Title': song_title,
-                                'Artist': artist.replace(' &', ','),
-                                'Word count': count_words_in_text(lyrics)}
-        else:
-            raise LookupError(f"parsing error. rank {rank} was already accounted for")
+
+        songs_dict = insert_data_to_songs_dict(songs_dict, rank, song_title, artist, lyrics)
 
     return songs_dict
 
