@@ -75,12 +75,10 @@ def validate_artist_input(artist: str) -> str:
         raise ValueError("Artist\'s Name must be given")
 
     # Handle multiple Artists
-    if "With" in artist:
-        artist = artist.split(' With')[0]
-    if 'Featuring' in artist:
-        artist = artist.split(' Featuring')[0]
-    if '&' in artist:
-        artist = artist.split(' & ')[0]
+    artist_separators = ["With", 'Featuring', '&']
+    for separator in artist_separators:
+        if separator in artist:
+            artist = artist.split(f' {separator} ')[0]
     return artist
 
 
