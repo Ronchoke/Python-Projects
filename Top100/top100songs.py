@@ -98,12 +98,12 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
 
     # TODO: Capital letters for magic variables (base_url)
     # Create Artist page URL address
-    base = 'https://www.lyrics.com/'
-    url = base + 'artist/' + artist.lower().replace(' ', '+')
+    base_url = 'https://www.lyrics.com/'
+    url_to_lyrics = f"{base_url}artist/{artist.lower().replace(' ', ' + ')}"
     relative_path = ''
 
     # Get content and find songs the css text specifiers for table data (td).
-    content = get_content_from_url(url)
+    content = get_content_from_url(url_to_lyrics)
     songs = content.find_all('td', {'class': 'tal qx'})
 
     # If content has a non-specific artist name find_all returns an empty string,
@@ -116,11 +116,11 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
         # Search in all matching artists for the song.
         for artist_link in artists:
             try:
-                url = base + artist_link.a.attrs['href']
+                url_to_lyrics = f"{base_url}{artist_link.a.attrs['href']}"
             except AttributeError:
                 continue
             # Get content and find songs the css text specifiers for table data (td).
-            content = get_content_from_url(url)
+            content = get_content_from_url(url_to_lyrics)
             songs = content.find_all('td', {'class': 'tal qx'})
             relative_path = find_song_title_link(song_title, songs)
             if relative_path:
@@ -128,7 +128,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     else:
         relative_path = find_song_title_link(song_title, songs)
 
-    return base + relative_path
+    return f'{base_url}{relative_path}'
 
 
 def get_lyrics(song_title: str, artist: str) -> Union[str, None]:
