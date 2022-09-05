@@ -255,10 +255,12 @@ def merge_dictionaries_by_key(songs_dict: dict, key: any) -> dict:
 
 def plot_most_used_words(tot_word_count: dict) -> plt:
     """
-    This function returns a figure object of the most used words as counted in all lyrics of top 100 ranked songs posted
-    in the Billboard website.
-    :param tot_word_count: dict[str: int], keys are str type, of a word, and the value is an integer
-    :return: None
+    This function returns a figure object of the most used words in all songs lyrics of the top 100 ranked songs posted
+    in the Billboard website vs. the counts of repeats.
+    :param tot_word_count: dict[str: int], keys are str type of single words, and the value is an integer representing
+                                            the times the word was counted in all lyrics of the top 100 songs posted
+                                            in the Billboard website.
+    :return: fig: plt, the figure object created.
     """
     big2small = sorted(tot_word_count.items(), key=lambda d: d[1], reverse=True)
     if len(big2small) > 100:
@@ -279,9 +281,11 @@ def plot_most_used_words(tot_word_count: dict) -> plt:
 
 def plot_most_verbal_artist(songs_dict: dict) -> plt:
     """
-    This function plots the top 10 artists that use the most unique words in their lyrics.
-    :param songs_dict: dict, as recieved from the get_top_100_songs function.
-    :return: None
+    This function returns a figure object of the top 10 artists that use the most words in their lyrics vs. the counts
+    of different words they used.
+    :param songs_dict: dict[str: int],
+                        data will be as songs_dict[rank]: {'Title': song_title, 'Artist': artist, 'Word count': lyrics}
+    :return: fig: plt, the figure object created.
     """
     songs_by_most_words = sorted(songs_dict.values(), key=lambda d: len(d['Word count']), reverse=True)
     if len(songs_by_most_words) > 10:
