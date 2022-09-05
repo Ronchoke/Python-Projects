@@ -119,7 +119,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
                 url = base + artist_link.a.attrs['href']
             except AttributeError:
                 continue
-            # get content and find songs the css text specifiers for table data (td).
+            # Get content and find songs the css text specifiers for table data (td).
             content = get_content_from_url(url)
             songs = content.find_all('td', {'class': 'tal qx'})
             relative_path = find_song_title_link(song_title, songs)
@@ -134,7 +134,7 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
 def get_lyrics(song_title: str, artist: str) -> Union[str, None]:
     """The get_lyrics function gets the lyrics for a song_title,
     from https://www.lyrics.com website
-    and return all the lyrics
+    and return all the lyrics.
 
     :param song_title: str.
     :param artist: str
@@ -242,14 +242,23 @@ def merge_all_word_counts(song_word_count: dict, tot_word_count: dict) -> dict:
 
 def merge_dictionaries_by_key(songs_dict: dict, key: any) -> dict:
     """This function runs through a dictionary with values of type dictionary,
-    and merges the values of songs_dict[songs_dict_key] values by the key given (value[key]).
-    :param songs_dict: dict. each key has a value of type(dict) with key values of 'Title', 'Artist' or 'Word count'
+    and merges the values of songs_dict[songs_dict_key] values by the key given (value[key])
+    into a new dictionary tot_word_count[].
+    :param songs_dict: dict. Each key values of type dict or str with key values.
     :param key: str, the key within the songs_dict value dictionary to be used (value[key])
     :return: tot_word_count: dict
     """
     tot_word_count = dict()
     for ranked_song_info in songs_dict.values():
-        tot_word_count = merge_all_word_counts(ranked_song_info[key], tot_word_count)
+        if key not in ranked_song_info.keys():
+            continue
+        if type(ranked_song_info[key]) is dict:
+            tot_word_count = merge_all_word_counts(ranked_song_info[key], tot_word_count)
+        else:
+            try:
+                tot_word_count[key].append(ranked_song_info[key])
+            except KeyError:
+                tot_word_count[key] = [ranked_song_info[key]]
     return tot_word_count
 
 
