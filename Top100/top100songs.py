@@ -45,7 +45,7 @@ def find_song_title_link(song_title: str, songs: list) -> str:
     return ''
 
 
-def check_song_title_input(song_title: str) -> str:
+def validate_song_title_input(song_title: str) -> str:
     """ This function checks the validity of the input and returns the song title common name.
 
     :param song_title: str, text representing the name of a song
@@ -63,7 +63,7 @@ def check_song_title_input(song_title: str) -> str:
     return song_title
 
 
-def check_artist_input(artist: str) -> str:
+def validate_artist_input(artist: str) -> str:
     """This function checks the validity of the input artist and returns the first artist.
 
     :param artist: str, the stage names of one or more artists
@@ -92,9 +92,9 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     :param artist: str
     :return: url: str
     """
-    # Check Input
-    song_title = check_song_title_input(song_title)
-    artist = check_artist_input(artist)
+    # Validate Input
+    song_title = validate_song_title_input(song_title)
+    artist = validate_artist_input(artist)
 
     # TODO: Capital letters for magic variables (base_url)
     # Create Artist page URL address
@@ -102,22 +102,24 @@ def get_full_url_to_lyrics(song_title: str, artist: str) -> str:
     url = base + 'artist/' + artist.lower().replace(' ', '+')
     relative_path = ''
 
-    # get content and find songs the css text specifiers for table data (td)
+    # Get content and find songs the css text specifiers for table data (td).
     content = get_content_from_url(url)
     songs = content.find_all('td', {'class': 'tal qx'})
 
-    # Non-specific artist name return empty string, indicating that the page is redirected to a search artist page
+    # If content has a non-specific artist name find_all returns an empty string,
+    # the web page is redirected to a search artist page,
+    # do a search in every artist discography to find the needed song.
     if len(songs) == 0:
-        # Look-Up in all Relevant artist under the css text specifiers for table data (td)
+        # Look-Up in all Relevant artist under the css text specifiers for table data (td).
         artists = content.find_all('td', {'class': 'tal fx'})
 
-        # Search in all matching artists for the song
+        # Search in all matching artists for the song.
         for artist_link in artists:
             try:
                 url = base + artist_link.a.attrs['href']
             except AttributeError:
                 continue
-            # get content and find songs the css text specifiers for table data (td)
+            # get content and find songs the css text specifiers for table data (td).
             content = get_content_from_url(url)
             songs = content.find_all('td', {'class': 'tal qx'})
             relative_path = find_song_title_link(song_title, songs)
@@ -177,7 +179,8 @@ def insert_data_to_songs_dict(songs_dict: dict, rank: str, song_title: str, arti
     """This function inserts data into songs_dict by the key rank, songs_dict[rank],
     the value will be a dictionary {'Title': song_title, 'Artist': artist, 'Word count': lyrics}.
 
-    :param songs_dict: dict, data will be as songs_dict[rank]: {'Title', 'Artist', 'Word count'}
+    :param songs_dict: dict,
+                       data will be as songs_dict[rank]: {'Title': song_title, 'Artist': artist, 'Word count': lyrics}
     :param rank: str, of decimal value between 1 and 100
     :param song_title: str, the song title corresponding to this week's top 100 rank
     :param artist: str, artist of corresponding song title
@@ -197,7 +200,10 @@ def insert_data_to_songs_dict(songs_dict: dict, rank: str, song_title: str, arti
 def get_top_100_songs() -> dict:
     """This function gets the top 100 songs as published on the
     Billboard hot-100 page (https://www.billboard.com/charts/hot-100)
-    :return: songs_dict: dict
+    and returns each rank's data of song title, artists and lyrics as
+    songs_dict[rank]: {'Title': song_title, 'Artist': artist, 'Word count': lyrics}
+    :return: songs_dict: dict, data will be as
+                               songs_dict[rank]: {'Title': song_title, 'Artist': artist, 'Word count': lyrics}
     """
 
     url = 'https://www.billboard.com/charts/hot-100'
@@ -249,12 +255,14 @@ def merge_dictionaries_by_key(songs_dict: dict, key: any) -> dict:
 
 def plot_most_used_words(tot_word_count: dict) -> plt:
     """
-    This function gets a dictionary of word: counts of the top 100 ranked songs lyrics.
-    :param tot_word_count: dict
+    This function returns a figure object of the most used words as counted in all lyrics of top 100 ranked songs posted
+    in the Billboard website.
+    :param tot_word_count: dict[str: int], keys are str type, of a word, and the value is an integer
     :return: None
     """
     big2small = sorted(tot_word_count.items(), key=lambda d: d[1], reverse=True)
-    big2small = big2small[:101]
+    if len(big2small) > 100:
+        big2small = big2small[:101]
     words = [i[0] for i in big2small]
     count = [i[1] for i in big2small]
 
@@ -276,7 +284,8 @@ def plot_most_verbal_artist(songs_dict: dict) -> plt:
     :return: None
     """
     songs_by_most_words = sorted(songs_dict.values(), key=lambda d: len(d['Word count']), reverse=True)
-    most_verbal = songs_by_most_words[:10]
+    if len(songs_by_most_words) > 10:
+        most_verbal = songs_by_most_words[:10]
     artist = [i['Artist'] for i in most_verbal]
     counts = [len(i['Word count']) for i in most_verbal]
 
