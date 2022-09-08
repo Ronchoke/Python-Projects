@@ -28,15 +28,14 @@ def get_content_from_url(url: str) -> Soup:
     return Soup(req.text, 'html.parser')
 
 
-def find_song_title_link(song_title: str, songs: list) -> str:
-    """This function iterates through HTML syntax from https://www.lyrics.com/ website
-    parsed by the get_content_from_url function
-    and find's the relative link to the song_title lyrics.
+def find_song_title_link(song_title: str, songs_list: list) -> str:
+    """This function iterates through a BeautifulSoup Object with HTML syntax from https://www.lyrics.com/ website
+    and finds the relative link to the song_title lyrics.
     :param song_title: str
-    :param songs: list of HTML syntax content
+    :param songs_list: list, of BeautifulSoup objects
     :return: str, relative path to url
     """
-    for song in songs:
+    for song in songs_list:
         find_song_title = song.a.text.lower()
         if '(' in find_song_title:
             find_song_title = find_song_title.split(' (')[0]
