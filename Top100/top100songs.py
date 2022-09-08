@@ -14,9 +14,9 @@ from typing import Union
 
 def get_content_from_url(url: str) -> Soup:
     """ This function requests the content of a given HTML url,
-     parses it with html.parser and returns a list of all content.
+     parses it with html.parser and returns a BeautifulSoup object of all content.
     :param url: str
-    :return: list
+    :return: BeautifulSoup
     """
     # Connect to url and check response
     approved_request = 200
@@ -24,7 +24,7 @@ def get_content_from_url(url: str) -> Soup:
     if req.status_code != approved_request:
         raise ConnectionError(f'{url}')
 
-    # Get content from artist page
+    # Get content from url web page
     return Soup(req.text, 'html.parser')
 
 
